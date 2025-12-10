@@ -50,9 +50,6 @@ export default function Items() {
     }
   }
 
-    // We no longer update item metadata or delete items from admin here.
-    // Stock adjustments happen through the dedicated endpoint below.
-
   useEffect(() => {
     loadItems();
   }, []);
