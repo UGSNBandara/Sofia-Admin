@@ -109,7 +109,7 @@ export default function Items() {
       </div>
 
       <div className="card glass scroll-card">
-        <table className="data-table">
+        <table className="data-table items-table">
           <thead>
             <tr>
               <th>ID</th>
