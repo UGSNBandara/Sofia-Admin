@@ -11,40 +11,46 @@ type Item = {
   available_count: number;
 };
 
-const CATEGORIES = ['Cone', 'Cup', 'Sundae', 'Stick'];
-const FLAVORS = ['Vanilla', 'Chocolate', 'Strawberry', 'Mint'];
-
 export default function Items() {
   const [items, setItems] = useState<Item[]>([]);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedFlavor, setSelectedFlavor] = useState('');
+  const [stockItem, setStockItem] = useState<Item | null>(null);
+  const [stockDelta, setStockDelta] = useState(0);
 
   // Admin-only: we only manage stock here. Creation/deletion are disabled.
 
   async function loadItems() {
     try {
-        const data = await api('/menu/items/all');
+      const data = await api('/menu/items/all');
       setItems(data.items || []);
     } catch (e) {
       alert('Failed to load items: ' + (e as Error).message);
     }
   }
 
-    // Item creation is disabled for this admin: only stock adjustments are allowed.
+  // Item creation is disabled for this admin: only stock adjustments are allowed.
 
-  async function updateCount(id: number) {
-    // Prompt for a delta value (can be negative) to adjust stock
-    const deltaStr = prompt('Adjust stock by (use negative to decrement), e.g. 5 or -2:');
-    if (!deltaStr) return;
-    const delta = parseInt(deltaStr);
-    if (Number.isNaN(delta)) return alert('Invalid number');
+  function openAdjustModal(item: Item) {
+    setStockItem(item);
+    setStockDelta(0);
+  }
+
+  function closeAdjustModal() {
+    setStockItem(null);
+    setStockDelta(0);
+  }
+
+  async function saveAdjust() {
+    if (!stockItem) return;
+    if (!stockDelta) {
+      alert('Set an adjustment before saving.');
+      return;
+    }
     try {
-      await api(`/menu/items/${id}/stock`, {
+      await api(`/menu/items/${stockItem.id}/stock?quantity=${stockDelta}`, {
         method: 'PUT',
-        body: JSON.stringify({ delta }),
       });
       await loadItems();
+      closeAdjustModal();
     } catch (e) {
       alert('Update failed: ' + (e as Error).message);
     }
@@ -54,84 +60,27 @@ export default function Items() {
     loadItems();
   }, []);
 
-  useEffect(() => {
-    let filtered = items;
-    if (selectedCategory) {
-      filtered = filtered.filter(i => i.category === selectedCategory);
-    }
-    if (selectedFlavor) {
-      filtered = filtered.filter(i => i.flavor === selectedFlavor);
-    }
-    setFilteredItems(filtered);
-  }, [items, selectedCategory, selectedFlavor]);
-
-  const matches = filteredItems.length;
   const highestCount = Math.max(1, ...items.map(i => i.available_count));
 
   return (
     <section className="page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Inventory Intelligence</p>
-          <h2>Menu Availability</h2>
-          <p className="muted">Live look at every flavor family plus quick adjustments.</p>
-        </div>
-        <div className="page-actions">
-          <button className="ghost" onClick={loadItems}>Refresh Sync</button>
-          <div className="metric-pill">
-            <span>Visible items</span>
-            <strong>{matches.toString().padStart(2, '0')}</strong>
-          </div>
-        </div>
-      </div>
-
-      <div className="filters card glass">
-        <div>
-          <label>Category</label>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
-            <option value="">All categories</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div>
-          <label>Flavor</label>
-          <select value={selectedFlavor} onChange={e => setSelectedFlavor(e.target.value)}>
-            <option value="">All flavors</option>
-            {FLAVORS.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
-        </div>
-        <div className="filters-summary">
-          <p>Filters combine in real-time. Reset to show everything.</p>
-          <button className="pill-btn" onClick={() => { setSelectedCategory(''); setSelectedFlavor(''); }}>
-            Clear filters
-          </button>
-        </div>
-      </div>
-
       <div className="card glass scroll-card">
         <table className="data-table items-table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Product</th>
+              <th>Name</th>
               <th>Price</th>
-              <th>Category</th>
-              <th>Flavor</th>
               <th>Availability</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map(i => (
+            {items.map(i => (
               <tr key={i.id}>
                 <td className="mono muted">{i.id}</td>
-                <td>
-                  <div className="cell-title">{i.name}</div>
-                  <span className="muted tiny">{i.description}</span>
-                </td>
+                <td>{i.name}</td>
                 <td>Rs {Number(i.price).toFixed(0)}</td>
-                <td><span className="pill subtle">{i.category}</span></td>
-                <td><span className="pill subtle">{i.flavor}</span></td>
                 <td>
                   <div className="availability-bar">
                     <span style={{ width: `${Math.round((i.available_count / highestCount) * 100)}%` }} />
@@ -139,19 +88,62 @@ export default function Items() {
                   <strong>{i.available_count}</strong>
                 </td>
                 <td>
-                  <button className="primary" onClick={() => updateCount(i.id)}>Adjust stock</button>
+                  <button className="primary" onClick={() => openAdjustModal(i)}>Adjust stock</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {!filteredItems.length && (
+        {!items.length && (
           <div className="empty">
-            <p>No items match these filters yet.</p>
+            <p>No items available.</p>
           </div>
         )}
       </div>
+
+      {stockItem && (
+        <div className="modal-overlay" onClick={closeAdjustModal}>
+          <div className="card glass modal-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <p className="mono tiny muted">Item #{stockItem.id}</p>
+                <h3>{stockItem.name}</h3>
+              </div>
+              <button type="button" className="ghost" onClick={closeAdjustModal}>Close</button>
+            </div>
+
+            <div className="modal-meta">
+              <div>
+                <dt>Current stock</dt>
+                <dd>{stockItem.available_count}</dd>
+              </div>
+              <div>
+                <dt>Price</dt>
+                <dd>Rs {Number(stockItem.price).toFixed(0)}</dd>
+              </div>
+            </div>
+
+            <div className="stock-stepper">
+              <button type="button" className="ghost" onClick={() => setStockDelta(d => d - 1)}>-</button>
+              <input
+                type="number"
+                value={stockDelta}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setStockDelta(Number.isNaN(val) ? 0 : Math.trunc(val));
+                }}
+              />
+              <button type="button" className="ghost" onClick={() => setStockDelta(d => d + 1)}>+</button>
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="ghost" onClick={closeAdjustModal}>Cancel</button>
+              <button type="button" className="primary" onClick={saveAdjust}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

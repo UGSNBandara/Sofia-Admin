@@ -20,6 +20,12 @@ const lineColor = '#5dd3ff';
 const accent2 = '#7A9BFF';
 const palette = ['#5dd3ff', '#7A9BFF', '#77E4B0', '#FFB86B', '#FF7B7B', '#A78BFA'];
 
+const EMOTIONS = ['happy', 'sad', 'angry', 'neutral', 'surprised', 'fearful', 'disgusted'] as const;
+const AGE_GROUPS = ['child', 'teen', 'adult', 'senior'] as const;
+const GENDER_GROUPS = ['male', 'female'] as const;
+const WEATHER_BUCKETS = ['hot', 'cold', 'moderate'] as const;
+const TIME_OF_DAY_BUCKETS = ['morning', 'afternoon', 'evening', 'night'] as const;
+
 type DashboardStatsResponse = {
   age_distribution?: Record<string, number>;
   gender_distribution?: Record<string, number>;
@@ -168,43 +174,38 @@ export default function Dashboard() {
     };
   }, [ageFilter, genderFilter, emotionFilter]);
 
-  const ageData =
-    stats?.age_distribution
-      ? Object.entries(stats.age_distribution).map(([name, value]) => ({ name, value }))
-      : [];
+  const ageData = AGE_GROUPS.map(name => ({
+    name,
+    value: stats?.age_distribution?.[name] ?? 0,
+  }));
 
-  const genderData =
-    stats?.gender_distribution
-      ? Object.entries(stats.gender_distribution).map(([name, value]) => ({ name, value }))
-      : [];
+  const genderData = GENDER_GROUPS.map(name => ({
+    name,
+    value: stats?.gender_distribution?.[name] ?? 0,
+  }));
 
-  const emotionFrequencyData =
-    stats?.emotion_frequency
-      ? Object.entries(stats.emotion_frequency).map(([emotion, count]) => ({ emotion, count }))
-      : [];
+  const emotionFrequencyData = EMOTIONS.map(emotion => ({
+    emotion,
+    count: stats?.emotion_frequency?.[emotion] ?? 0,
+  }));
 
   const dailySessionsData =
     stats?.daily_sessions?.map(point => ({ day: point.day, count: point.count })) ?? [];
 
-  const emotionWeatherRows: { weather: string; [emotion: string]: number | string }[] = [];
-  const emotionWeatherKeysSet = new Set<string>();
-
-  if (stats?.emotion_by_weather) {
-    for (const [weather, emotions] of Object.entries(stats.emotion_by_weather)) {
+  const emotionWeatherRows: { weather: string; [emotion: string]: number | string }[] =
+    WEATHER_BUCKETS.map(weather => {
       const row: { weather: string; [emotion: string]: number | string } = { weather };
-      for (const [emotion, count] of Object.entries(emotions)) {
-        row[emotion] = count;
-        emotionWeatherKeysSet.add(emotion);
-      }
-      emotionWeatherRows.push(row);
-    }
-  }
+      EMOTIONS.forEach(emotion => {
+        row[emotion] = stats?.emotion_by_weather?.[weather]?.[emotion] ?? 0;
+      });
+      return row;
+    });
 
-  const emotionWeatherKeys = Array.from(emotionWeatherKeysSet);
+  const emotionWeatherKeys = [...EMOTIONS];
 
-  const ageOptions = stats?.age_distribution ? Object.keys(stats.age_distribution) : [];
-  const genderOptions = stats?.gender_distribution ? Object.keys(stats.gender_distribution) : [];
-  const emotionOptions = stats?.emotion_frequency ? Object.keys(stats.emotion_frequency) : [];
+  const ageOptions = [...AGE_GROUPS];
+  const genderOptions = [...GENDER_GROUPS];
+  const emotionOptions = [...EMOTIONS];
 
   const forecastSeries = [
     { day: '2025-12-02', count: 21 },

@@ -56,7 +56,18 @@ export default function Orders() {
 
   async function setStatus(id: string, status: string) {
     try {
-      await api(`/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+      const key = formatStatusKey(status);
+      if (key === 'cancelled') {
+        await api('/orders/cancel', {
+          method: 'POST',
+          body: JSON.stringify({ order_id: id }),
+        });
+      } else {
+        await api(`/orders/${id}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status }),
+        });
+      }
       setActiveOrder(prev => (prev && prev.id === id ? { ...prev, status } : prev));
       await load();
     } catch (e) {
@@ -98,11 +109,6 @@ export default function Orders() {
   return (
     <section className="page">
       <div className="page-header">
-        <div>
-          <p className="eyebrow">Fulfilment Stream</p>
-          <h2>Customer Orders</h2>
-          <p className="muted">Switch statuses and keep AI runners aligned.</p>
-        </div>
         <div className="page-actions">
           <button type="button" className="ghost" onClick={load}>Reload</button>
         </div>
