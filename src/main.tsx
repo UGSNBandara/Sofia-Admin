@@ -6,6 +6,7 @@ import Items from './ui/Items';
 import Orders from './ui/Orders';
 import Dashboard from './ui/Dashboard';
 import './ui/base.css';
+import './ui/mobile-overrides.css';
 
 const router = createBrowserRouter([
   {

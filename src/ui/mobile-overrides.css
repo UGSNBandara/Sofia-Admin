@@ -1,0 +1,27 @@
+/* Mobile-specific refinements layered on top of base.css */
+
+.stock-stepper{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:16px 0;
+}
+.stock-stepper input{
+  width:80px;
+  text-align:center;
+}
+
+@media (max-width:768px){
+  /* Inventory: keep name, price, availability and actions visible; hide numeric ID */
+  .items-table th:nth-child(4),
+  .items-table td:nth-child(4),
+  .items-table th:nth-child(5),
+  .items-table td:nth-child(5){
+    display:table-cell;
+  }
+  .items-table th:nth-child(1),
+  .items-table td:nth-child(1){
+    display:none;
+  }
+}
+
