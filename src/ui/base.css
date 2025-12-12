@@ -449,6 +449,16 @@ button:hover{ transform:translateY(-2px); box-shadow:0 10px 30px rgba(103,217,25
   height:360px;
 }
 
+.demographics-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;
+  margin-top:8px;
+}
+.demographics-chart{
+  height:260px;
+}
+
 .metric-shell{
   margin-top:8px;
   max-height:260px;
