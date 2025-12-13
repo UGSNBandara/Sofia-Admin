@@ -43,6 +43,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [searchId, setSearchId] = useState('');
 
   async function load() {
     try {
@@ -98,9 +99,15 @@ export default function Orders() {
     return () => window.removeEventListener('keydown', handler);
   }, [activeOrder]);
 
-  const filtered = statusFilter
+  const filteredByStatus = statusFilter
     ? orders.filter(o => formatStatusKey(o.status) === statusFilter)
     : orders;
+
+  const normalizedSearchId = searchId.trim().toLowerCase();
+
+  const filtered = normalizedSearchId
+    ? filteredByStatus.filter(o => String(o.id).toLowerCase().includes(normalizedSearchId))
+    : filteredByStatus;
 
   function openOrder(order: Order) {
     setActiveOrder(order);
@@ -111,6 +118,13 @@ export default function Orders() {
       <div className="page-header">
         <div className="page-actions">
           <button type="button" className="ghost" onClick={load}>Reload</button>
+          <input
+            type="text"
+            className="order-search-input"
+            placeholder="Search by order ID..."
+            value={searchId}
+            onChange={e => setSearchId(e.target.value)}
+          />
         </div>
       </div>
 
